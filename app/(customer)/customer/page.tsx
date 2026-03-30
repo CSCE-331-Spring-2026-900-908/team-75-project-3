@@ -19,9 +19,14 @@ const CATEGORIES = ["Classic Drink", "Fruit Drink", "Food"];
 
 export default function CustomerPage() {
   const [menu, setMenu] = useState<MenuItem[]>([]);
+  const [addOns, setAddOns] = useState<MenuItem[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [activeCategory, setActiveCategory] = useState(CATEGORIES[0]);
   const [orderPlaced, setOrderPlaced] = useState(false);
+
+  // Modal state
+  const [customizing, setCustomizing] = useState<MenuItem | null>(null);
+  const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
 
   useEffect(() => {
     fetch("/api/menu")
@@ -29,6 +34,7 @@ export default function CustomerPage() {
       .then((data) => {
         if (Array.isArray(data)) {
           setMenu(data.filter((i: MenuItem) => i.category !== "Add-on"));
+          setAddOns(data.filter((i: MenuItem) => i.category === "Add-on"));
         } else {
           console.error("Menu API error:", data);
         }
@@ -39,8 +45,36 @@ export default function CustomerPage() {
   const filtered = menu.filter((i) => i.category === activeCategory);
   const total = cart.reduce((s, i) => s + i.price, 0);
 
-  function add(item: MenuItem) {
-    setCart([...cart, { item: item.itemname, price: Number(item.price), addOns: [] }]);
+  function handleItemClick(item: MenuItem) {
+    if (item.category === "Food") {
+      setCart([...cart, { item: item.itemname, price: Number(item.price), addOns: [] }]);
+    } else {
+      setCustomizing(item);
+      setSelectedAddOns([]);
+    }
+  }
+
+  function toggleAddOn(name: string) {
+    setSelectedAddOns((prev) =>
+      prev.includes(name) ? prev.filter((a) => a !== name) : [...prev, name]
+    );
+  }
+
+  function confirmCustomization() {
+    if (!customizing) return;
+    const addOnTotal = selectedAddOns.reduce((sum, name) => {
+      const a = addOns.find((ao) => ao.itemname === name);
+      return sum + (a ? Number(a.price) : 0);
+    }, 0);
+    setCart([
+      ...cart,
+      {
+        item: customizing.itemname,
+        price: Number(customizing.price) + addOnTotal,
+        addOns: selectedAddOns,
+      },
+    ]);
+    setCustomizing(null);
   }
 
   async function placeOrder() {
@@ -94,7 +128,7 @@ export default function CustomerPage() {
           {filtered.map((item) => (
             <button
               key={item.itemid}
-              onClick={() => add(item)}
+              onClick={() => handleItemClick(item)}
               className="text-left rounded-xl border border-border bg-card p-4 hover:border-accent hover:shadow-sm transition"
             >
               <div className="font-medium">{item.itemname}</div>
@@ -113,18 +147,23 @@ export default function CustomerPage() {
         ) : (
           <div className="flex-1 space-y-2 overflow-y-auto">
             {cart.map((item, i) => (
-              <div key={i} className="flex justify-between items-center text-sm">
-                <span>{item.item}</span>
-                <div className="flex items-center gap-2 text-muted">
-                  <span>${item.price.toFixed(2)}</span>
-                  <button
-                    onClick={() => setCart(cart.filter((_, j) => j !== i))}
-                    className="hover:text-red-500 transition"
-                    aria-label={`Remove ${item.item}`}
-                  >
-                    x
-                  </button>
+              <div key={i} className="text-sm">
+                <div className="flex justify-between items-center">
+                  <span>{item.item}</span>
+                  <div className="flex items-center gap-2 text-muted">
+                    <span>${item.price.toFixed(2)}</span>
+                    <button
+                      onClick={() => setCart(cart.filter((_, j) => j !== i))}
+                      className="hover:text-red-500 transition"
+                      aria-label={`Remove ${item.item}`}
+                    >
+                      x
+                    </button>
+                  </div>
                 </div>
+                {item.addOns.length > 0 && (
+                  <p className="text-xs text-muted ml-2">+ {item.addOns.join(", ")}</p>
+                )}
               </div>
             ))}
           </div>
@@ -144,6 +183,55 @@ export default function CustomerPage() {
           </button>
         </div>
       </div>
+
+      {/* Customization modal */}
+      {customizing && (
+        <div
+          className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50"
+          onClick={() => setCustomizing(null)}
+        >
+          <div
+            className="bg-card rounded-2xl p-6 w-full max-w-sm shadow-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-bold mb-1">{customizing.itemname}</h3>
+            <p className="text-sm text-muted mb-4">${Number(customizing.price).toFixed(2)}</p>
+
+            <p className="text-sm font-medium mb-2">Add toppings</p>
+            <div className="space-y-2 mb-6">
+              {addOns.map((ao) => (
+                <button
+                  key={ao.itemid}
+                  onClick={() => toggleAddOn(ao.itemname)}
+                  className={`w-full flex justify-between items-center rounded-lg border p-3 text-sm transition ${
+                    selectedAddOns.includes(ao.itemname)
+                      ? "border-accent bg-accent-light"
+                      : "border-border hover:border-accent"
+                  }`}
+                >
+                  <span>{ao.itemname}</span>
+                  <span className="text-muted">+${Number(ao.price).toFixed(2)}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setCustomizing(null)}
+                className="flex-1 rounded-lg border border-border py-2 text-sm font-medium hover:bg-background transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmCustomization}
+                className="flex-1 rounded-lg bg-accent py-2 text-white text-sm font-medium hover:opacity-90 transition"
+              >
+                Add to Order
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
