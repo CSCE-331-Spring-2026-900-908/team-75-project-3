@@ -7,6 +7,7 @@ interface MenuItem {
   itemname: string;
   category: string;
   price: number;
+  description: string;
 }
 
 interface CartItem {
@@ -131,7 +132,7 @@ export default function CustomerPage() {
               onClick={() => handleItemClick(item)}
               className="text-left rounded-xl border border-border bg-card p-4 hover:border-accent hover:shadow-sm transition"
             >
-              <div className="font-medium">{item.itemname}</div>
+              <div className="font-display font-bold">{item.itemname}</div>
               <div className="text-sm text-muted mt-1">${Number(item.price).toFixed(2)}</div>
             </button>
           ))}
@@ -194,7 +195,8 @@ export default function CustomerPage() {
             className="bg-card rounded-2xl p-6 w-full max-w-sm shadow-lg"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-lg font-bold mb-1">{customizing.itemname}</h3>
+            <h3 className="text-lg font-bold font-display mb-1">{customizing.itemname}</h3>
+            <p className="text-sm text-muted mb-4">{customizing.description}</p>
             <p className="text-sm text-muted mb-4">${Number(customizing.price).toFixed(2)}</p>
 
             <p className="text-sm font-medium mb-2">Add toppings</p>

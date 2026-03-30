@@ -7,7 +7,7 @@ const oranienbaum = Oranienbaum({ variable: "--font-display", weight: "400", sub
 
 export const metadata: Metadata = {
   title: "Taro Root",
-  description: "Taro Root Bubble Tea",
+  description: "Bubble Tea Shop",
 };
 
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
