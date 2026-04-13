@@ -4,7 +4,7 @@ import { signIn } from "@/lib/auth";
 export default function PortalPage() {
   return (
     <>
-      <main className="flex-1 flex flex-col items-center justify-center p-8 gap-10">
+      <main className="flex-1 flex flex-col items-center justify-center p-8 gap-11">
         <div className="text-center">
           <h1 className="text-6xl font-display tracking-tight">Taro Root</h1>
           <p className="text-muted mt-2">bubble tea & food.</p>
