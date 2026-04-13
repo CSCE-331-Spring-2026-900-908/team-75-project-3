@@ -17,8 +17,7 @@ interface CartItem {
 }
 
 const CATEGORIES = ["Classic Drink", "Fruit Drink", "Food"];
-const TEMP_OPTIONS = ["Hot"];
-const SUGAR_OPTIONS = ["100%", "75%", "50%", "25%", "0%"];
+const SUGAR_OPTIONS = ["120%", "100%", "75%", "50%", "25%", "0%"];
 
 export default function CashierTerminal() {
   const [menu, setMenu] = useState<MenuItem[]>([]);
@@ -249,7 +248,6 @@ export default function CashierTerminal() {
             <p className="text-sm font-medium mb-2">Add toppings</p>
             <div className="space-y-2 mb-6">
               {addOns
-                .filter((ao) => !TEMP_OPTIONS.includes(ao.itemname) && !SUGAR_OPTIONS.includes(ao.itemname))
                 .map((ao) => (
                   <button
                     key={ao.itemid}
