@@ -29,12 +29,37 @@ export async function POST(request: Request) {
     const category = String(body?.category ?? "").trim();
     const description = String(body?.description ?? "").trim();
     const price = Number(body?.price);
+    const ingredientMappingsRaw = Array.isArray(body?.ingredientMappings) ? body.ingredientMappings : [];
 
-    if (!itemName || !category || !description || Number.isNaN(price) || price < 0) {
-      return Response.json({ error: "itemname, category, description, and price are required" }, { status: 400 });
+    const ingredientMappings = ingredientMappingsRaw
+      .map((entry: unknown) => {
+        if (!entry || typeof entry !== "object") return null;
+        const obj = entry as { ingredientid?: unknown; quantity?: unknown };
+        const ingredientid = Number(obj.ingredientid);
+        const quantity = Number(obj.quantity);
+        if (!Number.isInteger(ingredientid) || Number.isNaN(quantity) || quantity <= 0) return null;
+        return { ingredientid, quantity };
+      })
+      .filter(
+        (entry: { ingredientid: number; quantity: number } | null): entry is { ingredientid: number; quantity: number } =>
+          entry !== null
+      );
+
+    if (
+      !itemName ||
+      !category ||
+      !description ||
+      Number.isNaN(price) ||
+      price < 0 ||
+      ingredientMappings.length === 0
+    ) {
+      return Response.json(
+        { error: "itemname, category, description, price, and ingredientMappings are required" },
+        { status: 400 }
+      );
     }
 
-    const created = await addMenuItem(itemName, category, price, description);
+    const created = await addMenuItem(itemName, category, price, description, ingredientMappings);
     return Response.json(created, { status: 201 });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

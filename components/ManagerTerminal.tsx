@@ -49,6 +49,13 @@ interface MenuApiItem {
     description: string;
 }
 
+interface IngredientMappingInput {
+    ingredientid: number;
+    quantity: number;
+}
+
+type ModalType = "employee" | "inventory" | "menu" | null;
+
 export default function ManagerTerminal() {
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [inventory, setInventory] = useState<InventoryItem[]>([]);
@@ -56,22 +63,32 @@ export default function ManagerTerminal() {
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [activeModal, setActiveModal] = useState<ModalType>(null);
 
-    const [employeeName, setEmployeeName] = useState("");
-    const [employeeRole, setEmployeeRole] = useState("");
-    const [employeeAge, setEmployeeAge] = useState("");
-    const [employeePhone, setEmployeePhone] = useState("");
-    const [employeePassword, setEmployeePassword] = useState("");
-    const [employeeEmail, setEmployeeEmail] = useState("");
+    const [employeeForm, setEmployeeForm] = useState({
+        name: "",
+        access: "",
+        age: "",
+        phone: "",
+        password: "",
+        email: "",
+    });
 
-    const [inventoryName, setInventoryName] = useState("");
-    const [inventoryQty, setInventoryQty] = useState("");
-    const [inventoryUnits, setInventoryUnits] = useState("");
+    const [inventoryForm, setInventoryForm] = useState({
+        ingredientname: "",
+        quantity: "",
+        units: "",
+    });
 
-    const [menuName, setMenuName] = useState("");
-    const [menuCategory, setMenuCategory] = useState("");
-    const [menuPrice, setMenuPrice] = useState("");
-    const [menuDescription, setMenuDescription] = useState("");
+    const [menuForm, setMenuForm] = useState({
+        itemname: "",
+        category: "",
+        price: "",
+        description: "",
+    });
+    const [menuIngredientRows, setMenuIngredientRows] = useState<Array<{ ingredientid: string; quantity: string }>>([
+        { ingredientid: "", quantity: "" },
+    ]);
 
     useEffect(() => {
         void loadData();
@@ -132,20 +149,35 @@ export default function ManagerTerminal() {
         }
     }
 
-    async function addEmployee() {
-        const name = employeeName.trim();
-        const role = employeeRole.trim();
-        const age = Number(employeeAge);
-        const phone = employeePhone.trim();
-        const password = employeePassword.trim();
-        const email = employeeEmail.trim();
-        if (!name || !role || Number.isNaN(age) || age <= 0 || !phone || !password || !email) return;
+    function openModal(type: Exclude<ModalType, null>) {
+        setError(null);
+        setActiveModal(type);
+    }
+
+    function closeModal() {
+        setActiveModal(null);
+    }
+
+    async function addEmployeeFromModal() {
+        const name = employeeForm.name.trim();
+        const access = employeeForm.access.trim();
+        const age = Number(employeeForm.age);
+        const phone = employeeForm.phone.trim();
+        const password = employeeForm.password.trim();
+        const email = employeeForm.email.trim();
+
+        if (!name || !access || !phone || !password || !email || Number.isNaN(age) || age <= 0) {
+            setError("Please fill all employee fields with valid values.");
+            return;
+        }
+
+
 
         try {
             const res = await fetch("/api/employees", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name, access: role, age, phone, password, email }),
+                body: JSON.stringify({ name, access, age, phone, password, email }),
             });
 
             if (!res.ok) {
@@ -164,12 +196,8 @@ export default function ManagerTerminal() {
                     email: created.email,
                 },
             ]);
-            setEmployeeName("");
-            setEmployeeRole("");
-            setEmployeeAge("");
-            setEmployeePhone("");
-            setEmployeePassword("");
-            setEmployeeEmail("");
+            setEmployeeForm({ name: "", access: "", age: "", phone: "", password: "", email: "" });
+            closeModal();
             setError(null);
         } catch (err) {
             const message = err instanceof Error ? err.message : "Failed to add employee.";
@@ -177,17 +205,21 @@ export default function ManagerTerminal() {
         }
     }
 
-    async function addInventoryItem() {
-        const name = inventoryName.trim();
-        const units = inventoryUnits.trim();
-        const quantity = Number(inventoryQty);
-        if (!name || !units || Number.isNaN(quantity) || quantity < 0) return;
+    async function addInventoryFromModal() {
+        const ingredientname = inventoryForm.ingredientname.trim();
+        const units = inventoryForm.units.trim();
+        const quantity = Number(inventoryForm.quantity);
+
+        if (!ingredientname || !units || Number.isNaN(quantity) || quantity < 0) {
+            setError("Please fill all inventory fields with valid values.");
+            return;
+        }
 
         try {
             const res = await fetch("/api/inventory", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ ingredientname: name, quantity, units }),
+                body: JSON.stringify({ ingredientname, quantity, units }),
             });
 
             if (!res.ok) {
@@ -204,9 +236,8 @@ export default function ManagerTerminal() {
                     unit: created.units,
                 },
             ]);
-            setInventoryName("");
-            setInventoryQty("");
-            setInventoryUnits("");
+            setInventoryForm({ ingredientname: "", quantity: "", units: "" });
+            closeModal();
             setError(null);
         } catch (err) {
             const message = err instanceof Error ? err.message : "Failed to add inventory item.";
@@ -214,18 +245,38 @@ export default function ManagerTerminal() {
         }
     }
 
-    async function addMenuItem() {
-        const name = menuName.trim();
-        const category = menuCategory.trim();
-        const price = Number(menuPrice);
-        const description = menuDescription.trim();
-        if (!name || !category || Number.isNaN(price) || price < 0 || !description) return;
+    async function addMenuFromModal() {
+        const itemname = menuForm.itemname.trim();
+        const category = menuForm.category.trim();
+        const price = Number(menuForm.price);
+        const description = menuForm.description.trim();
+
+        if (!itemname || !category || !description || Number.isNaN(price) || price < 0) {
+            setError("Please fill all menu fields with valid values.");
+            return;
+        }
+
+        const ingredientMappings: IngredientMappingInput[] = [];
+        for (const row of menuIngredientRows) {
+            const ingredientid = Number(row.ingredientid);
+            const quantity = Number(row.quantity);
+            if (!Number.isInteger(ingredientid) || Number.isNaN(quantity) || quantity <= 0) {
+                setError("Each ingredient mapping row needs a valid ingredient and quantity > 0.");
+                return;
+            }
+            ingredientMappings.push({ ingredientid, quantity });
+        }
+
+        if (ingredientMappings.length === 0) {
+            setError("At least one ingredient mapping is required.");
+            return;
+        }
 
         try {
             const res = await fetch("/api/menu", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ itemname: name, category, price, description }),
+                body: JSON.stringify({ itemname, category, price, description, ingredientMappings }),
             });
 
             if (!res.ok) {
@@ -242,15 +293,26 @@ export default function ManagerTerminal() {
                     price: Number(created.price),
                 },
             ]);
-            setMenuName("");
-            setMenuCategory("");
-            setMenuPrice("");
-            setMenuDescription("");
+            setMenuForm({ itemname: "", category: "", price: "", description: "" });
+            setMenuIngredientRows([{ ingredientid: "", quantity: "" }]);
+            closeModal();
             setError(null);
         } catch (err) {
             const message = err instanceof Error ? err.message : "Failed to add menu item.";
             setError(message);
         }
+    }
+
+    function addIngredientRow() {
+        setMenuIngredientRows((prev) => [...prev, { ingredientid: "", quantity: "" }]);
+    }
+
+    function updateIngredientRow(index: number, field: "ingredientid" | "quantity", value: string) {
+        setMenuIngredientRows((prev) => prev.map((row, i) => (i === index ? { ...row, [field]: value } : row)));
+    }
+
+    function removeIngredientRow(index: number) {
+        setMenuIngredientRows((prev) => (prev.length <= 1 ? prev : prev.filter((_, i) => i !== index)));
     }
 
     async function deleteEmployeeById(id: number) {
@@ -291,7 +353,7 @@ export default function ManagerTerminal() {
 
     return (
         <main className="flex-1 p-6 md:p-8">
-            <h1 className="text-3xl font-display tracking-tight mb-6">Manager Terminal</h1>
+            <h1 className="text-3xl font-display tracking-tight mb-6">Taro Root</h1>
 
             <div className="mb-4 flex items-center gap-4">
                 {loading && <p className="text-sm text-muted">Loading manager data...</p>}
@@ -306,54 +368,13 @@ export default function ManagerTerminal() {
 
             <div className="grid gap-6 lg:grid-cols-3">
                 <section className="rounded-xl border border-border bg-card p-4 flex flex-col">
-                    <h2 className="text-xl font-bold mb-3">Employees</h2>
-
-                    <div className="grid gap-2 mb-4">
-                        <input
-                            value={employeeName}
-                            onChange={(e) => setEmployeeName(e.target.value)}
-                            placeholder="Employee name"
-                            className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                        />
-                        <input
-                            value={employeeRole}
-                            onChange={(e) => setEmployeeRole(e.target.value)}
-                            placeholder="Role"
-                            className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                        />
-                        <input
-                            type="number"
-                            min="1"
-                            value={employeeAge}
-                            onChange={(e) => setEmployeeAge(e.target.value)}
-                            placeholder="Age"
-                            className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                        />
-                        <input
-                            value={employeePhone}
-                            onChange={(e) => setEmployeePhone(e.target.value)}
-                            placeholder="Phone"
-                            className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                        />
-                        <input
-                            type="password"
-                            value={employeePassword}
-                            onChange={(e) => setEmployeePassword(e.target.value)}
-                            placeholder="Password"
-                            className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                        />
-                        <input
-                            type="email"
-                            value={employeeEmail}
-                            onChange={(e) => setEmployeeEmail(e.target.value)}
-                            placeholder="Email"
-                            className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                        />
+                    <div className="mb-3 flex items-center justify-between">
+                        <h2 className="text-xl font-bold">Employees</h2>
                         <button
-                            onClick={addEmployee}
-                            className="rounded-lg bg-accent py-2 text-sm font-medium text-white hover:opacity-90 transition"
+                            onClick={() => openModal("employee")}
+                            className="rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-white hover:opacity-90 transition"
                         >
-                            Add Employee
+                            Edit
                         </button>
                     </div>
 
@@ -381,34 +402,13 @@ export default function ManagerTerminal() {
                 </section>
 
                 <section className="rounded-xl border border-border bg-card p-4 flex flex-col">
-                    <h2 className="text-xl font-bold mb-3">Inventory Items</h2>
-
-                    <div className="grid gap-2 mb-4">
-                        <input
-                            value={inventoryName}
-                            onChange={(e) => setInventoryName(e.target.value)}
-                            placeholder="Item name"
-                            className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                        />
-                        <input
-                            type="number"
-                            min="0"
-                            value={inventoryQty}
-                            onChange={(e) => setInventoryQty(e.target.value)}
-                            placeholder="Quantity"
-                            className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                        />
-                        <input
-                            value={inventoryUnits}
-                            onChange={(e) => setInventoryUnits(e.target.value)}
-                            placeholder="Units (bags, gallons, etc.)"
-                            className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                        />
+                    <div className="mb-3 flex items-center justify-between">
+                        <h2 className="text-xl font-bold">Inventory Items</h2>
                         <button
-                            onClick={addInventoryItem}
-                            className="rounded-lg bg-accent py-2 text-sm font-medium text-white hover:opacity-90 transition"
+                            onClick={() => openModal("inventory")}
+                            className="rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-white hover:opacity-90 transition"
                         >
-                            Add Inventory Item
+                            Edit
                         </button>
                     </div>
 
@@ -436,41 +436,13 @@ export default function ManagerTerminal() {
                 </section>
 
                 <section className="rounded-xl border border-border bg-card p-4 flex flex-col">
-                    <h2 className="text-xl font-bold mb-3">Menu Items</h2>
-
-                    <div className="grid gap-2 mb-4">
-                        <input
-                            value={menuName}
-                            onChange={(e) => setMenuName(e.target.value)}
-                            placeholder="Menu item name"
-                            className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                        />
-                        <input
-                            value={menuCategory}
-                            onChange={(e) => setMenuCategory(e.target.value)}
-                            placeholder="Category"
-                            className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                        />
-                        <input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            value={menuPrice}
-                            onChange={(e) => setMenuPrice(e.target.value)}
-                            placeholder="Price"
-                            className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                        />
-                        <input
-                            value={menuDescription}
-                            onChange={(e) => setMenuDescription(e.target.value)}
-                            placeholder="Description"
-                            className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                        />
+                    <div className="mb-3 flex items-center justify-between">
+                        <h2 className="text-xl font-bold">Menu Items</h2>
                         <button
-                            onClick={addMenuItem}
-                            className="rounded-lg bg-accent py-2 text-sm font-medium text-white hover:opacity-90 transition"
+                            onClick={() => openModal("menu")}
+                            className="rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-white hover:opacity-90 transition"
                         >
-                            Add Menu Item
+                            Edit
                         </button>
                     </div>
 
@@ -497,6 +469,207 @@ export default function ManagerTerminal() {
                     </div>
                 </section>
             </div>
+
+            {activeModal && (
+                <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+                    <div className="w-full max-w-lg rounded-xl border border-border bg-card p-5 shadow-lg">
+                        {activeModal === "employee" && (
+                            <>
+                                <h3 className="text-lg font-bold mb-4">Add Employee</h3>
+                                <div className="grid gap-2">
+                                    <input
+                                        value={employeeForm.name}
+                                        onChange={(e) => setEmployeeForm((prev) => ({ ...prev, name: e.target.value }))}
+                                        placeholder="Name"
+                                        className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                                    />
+                                    <input
+                                        value={employeeForm.access}
+                                        onChange={(e) => setEmployeeForm((prev) => ({ ...prev, access: e.target.value }))}
+                                        placeholder="Access role"
+                                        className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                                    />
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        value={employeeForm.age}
+                                        onChange={(e) => setEmployeeForm((prev) => ({ ...prev, age: e.target.value }))}
+                                        placeholder="Age"
+                                        className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                                    />
+                                    <input
+                                        value={employeeForm.phone}
+                                        onChange={(e) => setEmployeeForm((prev) => ({ ...prev, phone: e.target.value }))}
+                                        placeholder="Phone"
+                                        className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                                    />
+                                    <input
+                                        type="password"
+                                        value={employeeForm.password}
+                                        onChange={(e) => setEmployeeForm((prev) => ({ ...prev, password: e.target.value }))}
+                                        placeholder="Password"
+                                        className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                                    />
+                                    <input
+                                        type="email"
+                                        value={employeeForm.email}
+                                        onChange={(e) => setEmployeeForm((prev) => ({ ...prev, email: e.target.value }))}
+                                        placeholder="Email"
+                                        className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                                    />
+                                </div>
+                                <div className="mt-4 flex justify-end gap-2">
+                                    <button
+                                        onClick={closeModal}
+                                        className="rounded-lg border border-border px-3 py-2 text-sm hover:bg-background"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={() => void addEmployeeFromModal()}
+                                        className="rounded-lg bg-accent px-3 py-2 text-sm font-medium text-white hover:opacity-90"
+                                    >
+                                        Save
+                                    </button>
+                                </div>
+                            </>
+                        )}
+
+                        {activeModal === "inventory" && (
+                            <>
+                                <h3 className="text-lg font-bold mb-4">Add Inventory Item</h3>
+                                <div className="grid gap-2">
+                                    <input
+                                        value={inventoryForm.ingredientname}
+                                        onChange={(e) => setInventoryForm((prev) => ({ ...prev, ingredientname: e.target.value }))}
+                                        placeholder="Ingredient name"
+                                        className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                                    />
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        value={inventoryForm.quantity}
+                                        onChange={(e) => setInventoryForm((prev) => ({ ...prev, quantity: e.target.value }))}
+                                        placeholder="Quantity"
+                                        className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                                    />
+                                    <input
+                                        value={inventoryForm.units}
+                                        onChange={(e) => setInventoryForm((prev) => ({ ...prev, units: e.target.value }))}
+                                        placeholder="Units"
+                                        className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                                    />
+                                </div>
+                                <div className="mt-4 flex justify-end gap-2">
+                                    <button
+                                        onClick={closeModal}
+                                        className="rounded-lg border border-border px-3 py-2 text-sm hover:bg-background"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={() => void addInventoryFromModal()}
+                                        className="rounded-lg bg-accent px-3 py-2 text-sm font-medium text-white hover:opacity-90"
+                                    >
+                                        Save
+                                    </button>
+                                </div>
+                            </>
+                        )}
+
+                        {activeModal === "menu" && (
+                            <>
+                                <h3 className="text-lg font-bold mb-4">Add Menu Item</h3>
+                                <div className="grid gap-2 mb-3">
+                                    <input
+                                        value={menuForm.itemname}
+                                        onChange={(e) => setMenuForm((prev) => ({ ...prev, itemname: e.target.value }))}
+                                        placeholder="Item name"
+                                        className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                                    />
+                                    <input
+                                        value={menuForm.category}
+                                        onChange={(e) => setMenuForm((prev) => ({ ...prev, category: e.target.value }))}
+                                        placeholder="Category"
+                                        className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                                    />
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        value={menuForm.price}
+                                        onChange={(e) => setMenuForm((prev) => ({ ...prev, price: e.target.value }))}
+                                        placeholder="Price"
+                                        className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                                    />
+                                    <textarea
+                                        value={menuForm.description}
+                                        onChange={(e) => setMenuForm((prev) => ({ ...prev, description: e.target.value }))}
+                                        placeholder="Description"
+                                        className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                                    />
+                                </div>
+
+                                <p className="text-sm font-medium mb-2">Ingredient mappings</p>
+                                <div className="space-y-2 max-h-44 overflow-y-auto">
+                                    {menuIngredientRows.map((row, index) => (
+                                        <div key={index} className="grid grid-cols-[1fr_120px_auto] gap-2">
+                                            <select
+                                                value={row.ingredientid}
+                                                onChange={(e) => updateIngredientRow(index, "ingredientid", e.target.value)}
+                                                className="rounded-lg border border-border bg-background px-2 py-2 text-sm"
+                                            >
+                                                <option value="">Select ingredient</option>
+                                                {inventory.map((ing) => (
+                                                    <option key={ing.id} value={ing.id}>
+                                                        {ing.id} - {ing.name}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <input
+                                                type="number"
+                                                min="0.01"
+                                                step="0.01"
+                                                value={row.quantity}
+                                                onChange={(e) => updateIngredientRow(index, "quantity", e.target.value)}
+                                                placeholder="Quantity"
+                                                className="rounded-lg border border-border bg-background px-2 py-2 text-sm"
+                                            />
+                                            <button
+                                                onClick={() => removeIngredientRow(index)}
+                                                className="rounded-lg border border-border px-2 text-xs hover:bg-background"
+                                            >
+                                                Remove
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                                <button
+                                    onClick={addIngredientRow}
+                                    className="mt-2 rounded-lg border border-border px-3 py-1.5 text-xs hover:bg-background"
+                                >
+                                    Add ingredient row
+                                </button>
+
+                                <div className="mt-4 flex justify-end gap-2">
+                                    <button
+                                        onClick={closeModal}
+                                        className="rounded-lg border border-border px-3 py-2 text-sm hover:bg-background"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={() => void addMenuFromModal()}
+                                        className="rounded-lg bg-accent px-3 py-2 text-sm font-medium text-white hover:opacity-90"
+                                    >
+                                        Save
+                                    </button>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
+            )}
         </main>
     );
 }
