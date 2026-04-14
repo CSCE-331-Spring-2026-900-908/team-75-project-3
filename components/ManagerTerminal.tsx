@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 interface Employee {
     id: number;
@@ -364,6 +365,15 @@ export default function ManagerTerminal() {
                 >
                     Refresh
                 </button>
+
+                <Link
+                    href="/manager/stats"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-white hover:opacity-90 transition"
+                >
+                    View Statistics
+                </Link>
             </div>
 
             <div className="grid gap-6 lg:grid-cols-3">
