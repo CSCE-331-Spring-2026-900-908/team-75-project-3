@@ -30,3 +30,10 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans, Arial, Helvetica, sans-serif);
 }
+
+@keyframes toast-life {
+  0%   { opacity: 0; transform: translate(-50%, 20px) scale(0.9); }
+  10%  { opacity: 1; transform: translate(-50%, 0) scale(1); }
+  75%  { opacity: 1; transform: translate(-50%, 0) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, 24px) scale(0.85); }
+}
