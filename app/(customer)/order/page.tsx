@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 
 interface MenuItem {
   itemid: number;
@@ -11,14 +11,9 @@ interface MenuItem {
 }
 
 interface CartItem {
-  id: string;
   item: string;
   price: number;
   addOns: string[];
-}
-
-function newId() {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 // New interface for the weather data
@@ -42,26 +37,14 @@ export default function CustomerPage() {
 
   const [customizing, setCustomizing] = useState<MenuItem | null>(null);
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ id: number; message: string } | null>(null);
-  const toastTimeoutRef = useRef<number | null>(null);
-
-  function showToast(message: string) {
-    if (toastTimeoutRef.current !== null) {
-      window.clearTimeout(toastTimeoutRef.current);
-    }
-    setToast({ id: Date.now(), message });
-    toastTimeoutRef.current = window.setTimeout(() => setToast(null), 1800);
-  }
 
   // New state for weather
   const [weather, setWeather] = useState<WeatherData | null>(null);
   // Helper for updating the weather
   const fetchWeather = async () => {
     try {
-      const res = await fetch("/api/weather");
-      if (!res.ok) return;
-      const data = await res.json();
+      const response = await fetch("/api/weather");
+      const data = await response.json();
       setWeather(data);
     } catch (err) {
       console.error("Weather fetch failed:", err);
@@ -89,21 +72,11 @@ export default function CustomerPage() {
 
   function handleItemClick(item: MenuItem) {
     if (item.category === "Food") {
-      setCart((prev) => [
-        ...prev,
-        { id: newId(), item: item.itemname, price: Number(item.price), addOns: [] },
-      ]);
-      showToast(`${item.itemname} added to cart`);
+      setCart([...cart, { item: item.itemname, price: Number(item.price), addOns: [] }]);
     } else {
       setCustomizing(item);
       setSelectedAddOns([]);
     }
-  }
-
-  function openRecommendation() {
-    const name = getWeatherRecommendation();
-    const item = menu.find((m) => m.itemname === name);
-    if (item) handleItemClick(item);
   }
 
   function toggleExclusive(name: string, groupNames: string[]) {
@@ -125,39 +98,15 @@ export default function CustomerPage() {
       const a = addOns.find((ao) => ao.itemname === name);
       return sum + (a ? Number(a.price) : 0);
     }, 0);
-    const base = {
-      item: customizing.itemname,
-      price: Number(customizing.price) + addOnTotal,
-      addOns: selectedAddOns,
-    };
-
-    if (editingId !== null) {
-      setCart((prev) => prev.map((c) => (c.id === editingId ? { ...c, ...base } : c)));
-      showToast(`${customizing.itemname} updated`);
-    } else {
-      setCart((prev) => [...prev, { id: newId(), ...base }]);
-      showToast(`${customizing.itemname} added to cart`);
-    }
-    closeCustomizing();
-  }
-
-  function closeCustomizing() {
+    setCart([
+      ...cart,
+      {
+        item: customizing.itemname,
+        price: Number(customizing.price) + addOnTotal,
+        addOns: selectedAddOns,
+      },
+    ]);
     setCustomizing(null);
-    setEditingId(null);
-    setSelectedAddOns([]);
-  }
-
-  function startEditing(cartItem: CartItem) {
-    const menuItem = menu.find((m) => m.itemname === cartItem.item);
-    if (!menuItem || menuItem.category === "Food") return;
-    setCustomizing(menuItem);
-    setSelectedAddOns(cartItem.addOns);
-    setEditingId(cartItem.id);
-  }
-
-  function isCustomizable(itemName: string) {
-    const menuItem = menu.find((m) => m.itemname === itemName);
-    return menuItem && menuItem.category !== "Food";
   }
 
   function getWeatherRecommendation() {
@@ -173,22 +122,18 @@ export default function CustomerPage() {
   }
 
   async function placeOrder() {
-    try {
-      const res = await fetch("/api/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items: cart, total, source: "kiosk" }),
-      });
-      if (!res.ok) throw new Error(`Server responded ${res.status}`);
-
-      setCart([]);
-      setCartOpen(false);
-      await fetchWeather();
-      setOrderPlaced(true);
-    } catch (err) {
-      console.error("Failed to place order:", err);
-      showToast("Could not place order. Please try again.");
-    }
+    await fetch("/api/orders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ items: cart, total, source: "kiosk" }),
+    });
+    
+    // Clear the cart
+    setCart([]);
+    setCartOpen(false);
+    //refresh the weather data
+    await fetchWeather();
+    setOrderPlaced(true);
   }
 
   if (orderPlaced) {
@@ -216,12 +161,12 @@ export default function CustomerPage() {
       <div className="flex flex-1 overflow-hidden">
 
         {/* Updated Sidebar with Weather at the bottom */}
-        <div className="w-44 flex flex-col gap-2 p-4 border-r border-border bg-card">
+        <div className="w-32 flex flex-col gap-2 p-4 border-r border-border bg-card">
           {CATEGORIES.map((cat) => (
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}
-              className={`px-3 py-3 rounded-lg text-base font-medium text-center whitespace-nowrap transition ${
+              className={`px-3 py-2.5 rounded-lg text-sm font-medium text-center transition ${
                 activeCategory === cat
                   ? "bg-accent text-white"
                   : "border border-border text-muted hover:border-accent"
@@ -232,10 +177,10 @@ export default function CustomerPage() {
           ))}
 
           {/* Weather Widget Container */}
-          <div className="mt-auto pt-4 border-t border-border flex flex-col gap-1 text-xs text-muted uppercase tracking-wider">
+          <div className="mt-auto pt-4 border-t border-border flex flex-col gap-1 text-[10px] text-muted uppercase tracking-wider">
             {weather ? (
               <>
-                <div className="text-foreground font-bold text-xl leading-none">
+                <div className="text-foreground font-bold text-base leading-none">
                   {weather.temperature_2m.toFixed(0)}°F
                 </div>
                 <div>{weather.cloud_cover > 50 ? "Cloudy" : "Clear"}</div>
@@ -244,13 +189,10 @@ export default function CustomerPage() {
                   <div className="text-accent font-medium">Rain: {weather.precipitation}"</div>
                 )}
 
-                {/* New Recommendation Text */}
-                <button
-                  onClick={openRecommendation}
-                  className="text-left mt-3 pt-3 border-t border-border/50 font-semibold normal-case leading-tight hover:text-accent transition"
-                >
-                  Try our <span className="text-foreground not-italic underline underline-offset-2 hover:text-accent">{getWeatherRecommendation()}</span>
-                </button>
+                {/* Recommendation Text */}
+                <div className="mt-3 pt-3 border-t border-border/50 font-semibold normal-case leading-tight">
+                  Try our <span className="text-foreground not-italic">{getWeatherRecommendation()}</span>
+                </div>
               </>
             ) : (
               <div className="animate-pulse">Loading...</div>
@@ -259,20 +201,15 @@ export default function CustomerPage() {
         </div>
 
         <div className="flex-1 p-6 overflow-y-auto">
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {filtered.map((item) => (
               <button
                 key={item.itemid}
                 onClick={() => handleItemClick(item)}
                 className="text-left rounded-xl border border-border bg-card p-4 hover:border-accent hover:shadow-sm transition"
               >
-                <div className="flex items-baseline justify-between gap-2">
-                  <div className="font-display font-bold text-lg leading-tight">{item.itemname}</div>
-                  <div className="text-base text-muted shrink-0">${Number(item.price).toFixed(2)}</div>
-                </div>
-                {item.description && (
-                  <div className="text-sm text-muted mt-2 leading-snug">{item.description}</div>
-                )}
+                <div className="font-display font-bold">{item.itemname}</div>
+                <div className="text-sm text-muted mt-1">${Number(item.price).toFixed(2)}</div>
               </button>
             ))}
           </div>
@@ -306,67 +243,29 @@ export default function CustomerPage() {
           </span>
         )}
       </button>
-
-      {/* Cart Drawer & Modals remain the same... */}
-      {/* (Skipping identical modal code for brevity, ensure you keep your existing modal JSX here) */}
       
       {/* Cart drawer overlay */}
       {cartOpen && <div className="fixed inset-0 bg-black/40 z-40" onClick={() => setCartOpen(false)} />}
 
-      <div className={`fixed top-0 right-0 h-full w-80 bg-card border-l border-border z-50 flex flex-col p-6 transition-transform duration-200 ${cartOpen ? "translate-x-0" : "translate-x-full"}`}>
+      <div className={`fixed top-0 right-0 h-full w-72 bg-card border-l border-border z-50 flex flex-col p-6 transition-transform duration-200 ${cartOpen ? "translate-x-0" : "translate-x-full"}`}>
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-bold text-lg">Your Order</h2>
-          <div className="flex items-center gap-3">
-            {cart.length > 0 && (
-              <button
-                onClick={() => setCart([])}
-                className="text-sm text-muted text-red-500 transition hover:underline"
-              >
-                Clear all
-              </button>
-            )}
-            <button onClick={() => setCartOpen(false)} className="text-muted hover:text-foreground transition text-xl" aria-label="Close cart">✕</button>
-          </div>
+          <button onClick={() => setCartOpen(false)} className="text-muted hover:text-foreground transition text-xl">✕</button>
         </div>
-
-        <div className="flex-1 space-y-3 overflow-y-auto">
-          {cart.length === 0 ? (
-            <p className="text-muted text-sm">No items added yet.</p>
-          ) : (
-            cart.map((item) => (
-              <div key={item.id} className="border border-border rounded-lg p-3">
-                <div className="flex justify-between items-start gap-2">
-                  <div className="font-medium">{item.item}</div>
-                  <div className="text-muted shrink-0">${item.price.toFixed(2)}</div>
-                </div>
-                {item.addOns.length > 0 && (
-                  <div className="text-xs text-muted mt-1">{item.addOns.join(", ")}</div>
-                )}
-                <div className="flex gap-2 mt-2">
-                  {isCustomizable(item.item) && (
-                    <button
-                      onClick={() => startEditing(item)}
-                      className="text-xs text-accent hover:underline"
-                    >
-                      Customize
-                    </button>
-                  )}
-                  <button
-                    onClick={() => {
-                      setCart((prev) => prev.filter((c) => c.id !== item.id));
-                      showToast(`${item.item} removed from cart`);
-                    }}
-                    className="text-xs text-muted hover:underline text-red-500 ml-auto"
-                    aria-label={`Remove ${item.item}`}
-                  >
-                    Remove
-                  </button>
+        {/* Cart items list and place order button... */}
+        <div className="flex-1 space-y-2 overflow-y-auto">
+            {cart.map((item, i) => (
+              <div key={i} className="text-sm">
+                <div className="flex justify-between items-center">
+                  <span>{item.item}</span>
+                  <div className="flex items-center gap-2 text-muted">
+                    <span>${item.price.toFixed(2)}</span>
+                    <button onClick={() => setCart(cart.filter((_, j) => j !== i))} className="hover:text-red-500">✕</button>
+                  </div>
                 </div>
               </div>
-            ))
-          )}
+            ))}
         </div>
-
         <div className="border-t border-border pt-4 mt-4">
           <div className="flex justify-between font-bold mb-3">
             <span>Total</span>
@@ -376,86 +275,15 @@ export default function CustomerPage() {
         </div>
       </div>
 
-      {/* Toast */}
-      {toast && (
-        <div
-          key={toast.id}
-          role="status"
-          aria-live="polite"
-          style={{ animation: "toast-life 1800ms forwards" }}
-          className="fixed bottom-24 left-1/2 z-50 rounded-full bg-foreground text-background px-5 py-3 text-base shadow-lg"
-        >
-          {toast.message}
-        </div>
-      )}
-
       {/* Customization modal */}
       {customizing && (
-        <div
-          className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50"
-          onClick={closeCustomizing}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label={`Customize ${customizing.itemname}`}
-            className="bg-card rounded-2xl p-6 w-full max-w-sm shadow-lg max-h-[85vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 className="text-xl font-bold mb-1">{customizing.itemname}</h3>
-            {customizing.description && (
-              <p className="text-sm text-muted mb-2">{customizing.description}</p>
-            )}
-            <p className="text-base text-muted mb-5">${Number(customizing.price).toFixed(2)}</p>
-
-            <p className="text-sm font-medium mb-2">Sugar Level</p>
-            <div className="grid grid-cols-3 gap-2 mb-5">
-              {SUGAR_OPTIONS.map((s) => (
-                <button
-                  key={s}
-                  onClick={() => toggleExclusive(s, SUGAR_OPTIONS)}
-                  className={`rounded-lg border py-2 text-sm transition ${
-                    selectedAddOns.includes(s)
-                      ? "border-accent bg-accent-light"
-                      : "border-border hover:border-accent"
-                  }`}
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
-
-            <p className="text-sm font-medium mb-2">Toppings</p>
-            <div className="space-y-2 mb-6">
-              {addOns.map((ao) => (
-                <button
-                  key={ao.itemid}
-                  onClick={() => toggleAddOn(ao.itemname)}
-                  className={`w-full flex justify-between items-center rounded-lg border p-3 text-sm transition ${
-                    selectedAddOns.includes(ao.itemname)
-                      ? "border-accent bg-accent-light"
-                      : "border-border hover:border-accent"
-                  }`}
-                >
-                  <span>{ao.itemname}</span>
-                  <span className="text-muted">+${Number(ao.price).toFixed(2)}</span>
-                </button>
-              ))}
-            </div>
-
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50" onClick={() => setCustomizing(null)}>
+          <div className="bg-card rounded-2xl p-6 w-full max-w-sm shadow-lg" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-bold mb-1">{customizing.itemname}</h3>
+            <p className="text-sm text-muted mb-5">${Number(customizing.price).toFixed(2)}</p>
             <div className="flex gap-3">
-              <button
-                onClick={closeCustomizing}
-                className="flex-1 rounded-lg border border-border py-2 font-medium hover:bg-background transition"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmCustomization}
-                className="flex-1 rounded-lg bg-accent py-2 text-white font-medium hover:opacity-90 transition"
-              >
-                {editingId !== null ? "Save Changes" : "Add to Order"}
-              </button>
+               <button onClick={() => setCustomizing(null)} className="flex-1 rounded-lg border py-2">Cancel</button>
+               <button onClick={confirmCustomization} className="flex-1 rounded-lg bg-accent py-2 text-white">Add to Order</button>
             </div>
           </div>
         </div>
