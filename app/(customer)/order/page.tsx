@@ -189,7 +189,8 @@ export default function CustomerPage() {
                   <div className="text-accent font-medium">Rain: {weather.precipitation}"</div>
                 )}
 
-                {/* Recommendation Text */}
+
+                {/* New Recommendation Text */}
                 <div className="mt-3 pt-3 border-t border-border/50 font-semibold normal-case leading-tight">
                   Try our <span className="text-foreground not-italic">{getWeatherRecommendation()}</span>
                 </div>
