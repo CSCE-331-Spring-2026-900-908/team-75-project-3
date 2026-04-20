@@ -9,7 +9,6 @@ export default async function ManagerPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* header for the Manager */}
       <header className="bg-white border-b p-4 flex justify-between items-center">
         <h1 className="font-bold">Manager Terminal</h1>
         <div className="flex items-center gap-3">
