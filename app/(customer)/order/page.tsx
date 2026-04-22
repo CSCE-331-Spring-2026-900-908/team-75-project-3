@@ -60,8 +60,8 @@ export default function CustomerPage() {
   const fetchWeather = async () => {
     try {
       const res = await fetch("/api/weather");
-      if (!res.ok) return;
       const data = await res.json();
+      if (!res.ok) return;
       setWeather(data);
     } catch (err) {
       console.error("Weather fetch failed:", err);
