@@ -22,7 +22,6 @@ function newId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-// New interface for the weather data
 interface WeatherData {
   temperature_2m: number;
   cloud_cover: number;
@@ -62,9 +61,7 @@ export default function CustomerPage() {
     toastTimeoutRef.current = window.setTimeout(() => setToast(null), 1800);
   }
 
-  // New state for weather
   const [weather, setWeather] = useState<WeatherData | null>(null);
-  // Helper for updating the weather
   const fetchWeather = async () => {
     try {
       const res = await fetch("/api/weather");
@@ -76,9 +73,7 @@ export default function CustomerPage() {
     }
   };
 
-
   useEffect(() => {
-    // Fetch Menu
     fetch("/api/menu")
       .then((r) => r.json())
       .then((data) => {
@@ -88,7 +83,6 @@ export default function CustomerPage() {
         }
       });
 
-    // Initial weather fetch
     fetchWeather();
   }, []);
 
@@ -202,13 +196,13 @@ export default function CustomerPage() {
   if (orderPlaced) {
     return (
       <main className="flex-1 flex flex-col items-center justify-center p-8">
-        <h1 className="text-3xl font-bold mb-2">Order placed</h1>
-        <p className="text-muted mb-6">Thank you for your order.</p>
+        <h1 className="text-3xl font-bold mb-2"><span>Order placed</span></h1>
+        <p className="text-muted mb-6"><span>Thank you for your order.</span></p>
         <button
           onClick={() => setOrderPlaced(false)}
           className="rounded-lg bg-accent px-6 py-2 text-white font-medium hover:opacity-90 transition"
         >
-          New Order
+          <span>New Order</span>
         </button>
       </main>
     );
@@ -218,7 +212,7 @@ export default function CustomerPage() {
     <main className="flex-1 flex flex-col relative h-screen">
 
       <div className="relative flex items-center justify-center py-4 border-b border-border bg-card">
-        <h1 className="text-3xl font-display tracking-tight">Taro Root</h1>
+        <h1 className="text-3xl font-display tracking-tight"><span>Taro Root</span></h1>
         <div className="absolute right-4 top-1/2 -translate-y-1/2">
           <GoogleTranslate />
         </div>
@@ -226,7 +220,7 @@ export default function CustomerPage() {
 
       <div className="flex flex-1 overflow-hidden">
 
-        {/* Updated Sidebar with Weather at the bottom */}
+        {/* Sidebar */}
         <div className="w-44 flex flex-col gap-2 p-4 border-r border-border bg-card">
           {CATEGORIES.map((cat) => (
             <button
@@ -238,37 +232,44 @@ export default function CustomerPage() {
                   : "border border-border text-muted hover:border-accent"
               }`}
             >
-              {cat}
+              {/* Static category names don't need spans since they never change,
+                  but wrapping them is harmless and consistent */}
+              <span>{cat}</span>
             </button>
           ))}
 
-          {/* Weather Widget Container */}
+          {/* Weather Widget */}
           <div className="mt-auto pt-4 border-t border-border flex flex-col gap-1 text-xs text-muted uppercase tracking-wider">
             {weather ? (
               <>
                 <div className="text-foreground font-bold text-xl leading-none">
-                  {weather.temperature_2m.toFixed(0)}°F
+                  <span>{weather.temperature_2m.toFixed(0)}°F</span>
                 </div>
-                <div>{weather.cloud_cover > 50 ? "Cloudy" : "Clear"}</div>
-                <div>Wind: {weather.wind_speed_10m} mph</div>
+                <div><span>{weather.cloud_cover > 50 ? "Cloudy" : "Clear"}</span></div>
+                <div><span>Wind: {weather.wind_speed_10m} mph</span></div>
                 {weather.precipitation > 0 && (
-                  <div className="text-accent font-medium">Rain: {weather.precipitation}"</div>
+                  <div className="text-accent font-medium">
+                    <span>Rain: {weather.precipitation}"</span>
+                  </div>
                 )}
 
-                {/* Recommendation Text */}
                 <button
                   onClick={openRecommendation}
                   className="text-left mt-3 pt-3 border-t border-border/50 font-semibold normal-case leading-tight hover:text-accent transition"
                 >
-                  Try our <span className="text-foreground not-italic underline underline-offset-2 hover:text-accent">{getWeatherRecommendation()}</span>
+                  <span>Try our </span>
+                  <span className="text-foreground not-italic underline underline-offset-2 hover:text-accent">
+                    {getWeatherRecommendation()}
+                  </span>
                 </button>
               </>
             ) : (
-              <div className="animate-pulse">Loading...</div>
+              <div className="animate-pulse"><span>Loading...</span></div>
             )}
           </div>
         </div>
 
+        {/* Menu grid */}
         <div className="flex-1 p-6 overflow-y-auto">
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             {filtered.map((item) => (
@@ -278,11 +279,17 @@ export default function CustomerPage() {
                 className="text-left rounded-xl border border-border bg-card p-4 hover:border-accent hover:shadow-sm transition"
               >
                 <div className="flex items-baseline justify-between gap-2">
-                  <div className="font-display font-bold text-lg leading-tight">{item.itemname}</div>
-                  <div className="text-base text-muted shrink-0">${Number(item.price).toFixed(2)}</div>
+                  <div className="font-display font-bold text-lg leading-tight">
+                    <span>{item.itemname}</span>
+                  </div>
+                  <div className="text-base text-muted shrink-0">
+                    <span>${Number(item.price).toFixed(2)}</span>
+                  </div>
                 </div>
                 {item.description && (
-                  <div className="text-sm text-muted mt-2 leading-snug">{item.description}</div>
+                  <div className="text-sm text-muted mt-2 leading-snug">
+                    <span>{item.description}</span>
+                  </div>
                 )}
               </button>
             ))}
@@ -310,7 +317,7 @@ export default function CustomerPage() {
           <circle cx="20" cy="21" r="1" />
           <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
         </svg>
-        Cart
+        <span>Cart</span>
         {cart.length > 0 && (
           <span className="bg-white text-accent text-xs rounded-full px-2 py-0.5 font-medium">
             {cart.length}
@@ -321,34 +328,43 @@ export default function CustomerPage() {
       {/* Cart drawer overlay */}
       {cartOpen && <div className="fixed inset-0 bg-black/40 z-40" onClick={() => setCartOpen(false)} />}
 
+      {/* Cart drawer */}
       <div className={`fixed top-0 right-0 h-full w-80 bg-card border-l border-border z-50 flex flex-col p-6 transition-transform duration-200 ${cartOpen ? "translate-x-0" : "translate-x-full"}`}>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-bold text-lg">Your Order</h2>
+          <h2 className="font-bold text-lg"><span>Your Order</span></h2>
           <div className="flex items-center gap-3">
             {cart.length > 0 && (
               <button
                 onClick={() => setCart([])}
                 className="text-sm text-muted text-red-500 transition hover:underline"
               >
-                Clear all
+                <span>Clear all</span>
               </button>
             )}
-            <button onClick={() => setCartOpen(false)} className="text-muted hover:text-foreground transition text-xl" aria-label="Close cart">✕</button>
+            <button
+              onClick={() => setCartOpen(false)}
+              className="text-muted hover:text-foreground transition text-xl"
+              aria-label="Close cart"
+            >
+              <span>✕</span>
+            </button>
           </div>
         </div>
 
         <div className="flex-1 space-y-3 overflow-y-auto">
           {cart.length === 0 ? (
-            <p className="text-muted text-sm">No items added yet.</p>
+            <p className="text-muted text-sm"><span>No items added yet.</span></p>
           ) : (
             cart.map((item) => (
               <div key={item.id} className="border border-border rounded-lg p-3">
                 <div className="flex justify-between items-start gap-2">
-                  <div className="font-medium">{item.item}</div>
-                  <div className="text-muted shrink-0">${item.price.toFixed(2)}</div>
+                  <div className="font-medium"><span>{item.item}</span></div>
+                  <div className="text-muted shrink-0"><span>${item.price.toFixed(2)}</span></div>
                 </div>
                 {item.addOns.length > 0 && (
-                  <div className="text-xs text-muted mt-1">{item.addOns.join(", ")}</div>
+                  <div className="text-xs text-muted mt-1">
+                    <span>{item.addOns.join(", ")}</span>
+                  </div>
                 )}
                 <div className="flex gap-2 mt-2">
                   {isCustomizable(item.item) && (
@@ -356,7 +372,7 @@ export default function CustomerPage() {
                       onClick={() => startEditing(item)}
                       className="text-xs text-accent hover:underline"
                     >
-                      Customize
+                      <span>Customize</span>
                     </button>
                   )}
                   <button
@@ -367,7 +383,7 @@ export default function CustomerPage() {
                     className="text-xs text-muted hover:underline text-red-500 ml-auto"
                     aria-label={`Remove ${item.item}`}
                   >
-                    Remove
+                    <span>Remove</span>
                   </button>
                 </div>
               </div>
@@ -380,7 +396,13 @@ export default function CustomerPage() {
             <span>Total</span>
             <span>${total.toFixed(2)}</span>
           </div>
-          <button onClick={placeOrder} disabled={cart.length === 0} className="w-full rounded-lg bg-accent py-2.5 text-white disabled:opacity-40">Place Order</button>
+          <button
+            onClick={placeOrder}
+            disabled={cart.length === 0}
+            className="w-full rounded-lg bg-accent py-2.5 text-white disabled:opacity-40"
+          >
+            <span>Place Order</span>
+          </button>
         </div>
       </div>
 
@@ -393,7 +415,7 @@ export default function CustomerPage() {
           style={{ animation: "toast-life 1800ms forwards" }}
           className="fixed bottom-24 left-1/2 z-50 rounded-full bg-foreground text-background px-5 py-3 text-base shadow-lg"
         >
-          {toast.message}
+          <span>{toast.message}</span>
         </div>
       )}
 
@@ -410,34 +432,36 @@ export default function CustomerPage() {
             className="bg-card rounded-2xl p-6 w-full max-w-sm shadow-lg max-h-[85vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-xl font-bold mb-1">{customizing.itemname}</h3>
+            <h3 className="text-xl font-bold mb-1"><span>{customizing.itemname}</span></h3>
             {customizing.description && (
-              <p className="text-sm text-muted mb-2">{customizing.description}</p>
+              <p className="text-sm text-muted mb-2"><span>{customizing.description}</span></p>
             )}
-            <p className="text-base text-muted mb-5">${Number(customizing.price).toFixed(2)}</p>
+            <p className="text-base text-muted mb-5">
+              <span>${Number(customizing.price).toFixed(2)}</span>
+            </p>
 
             {/* Temperature */}
             {customizing.category === "Classic Drink" && (
               <>
-              <p className="text-sm font-medium mb-2">Temperature</p>
-              <div className="flex gap-2 mb-5">
-                <button
-                  key="Hot"
-                  onClick={() => toggleAddOn("Hot")}
-                  className={`flex-1 rounded-lg border py-2.5 text-sm font-medium transition ${
-                    selectedAddOns.includes("Hot")
-                      ? "border-accent bg-accent-light text-accent"
-                      : "border-border text-muted hover:border-accent"
-                  }`}
-                >
-                  {"Hot"}
-                </button>
-              </div>
+                <p className="text-sm font-medium mb-2"><span>Temperature</span></p>
+                <div className="flex gap-2 mb-5">
+                  <button
+                    key="Hot"
+                    onClick={() => toggleAddOn("Hot")}
+                    className={`flex-1 rounded-lg border py-2.5 text-sm font-medium transition ${
+                      selectedAddOns.includes("Hot")
+                        ? "border-accent bg-accent-light text-accent"
+                        : "border-border text-muted hover:border-accent"
+                    }`}
+                  >
+                    <span>Hot</span>
+                  </button>
+                </div>
               </>
             )}
 
             {/* Sugar levels */}
-            <p className="text-sm font-medium mb-2">Sugar Level</p>
+            <p className="text-sm font-medium mb-2"><span>Sugar Level</span></p>
             <div className="grid grid-cols-3 gap-2 mb-5">
               {SUGAR_OPTIONS.map((s) => (
                 <button
@@ -449,12 +473,12 @@ export default function CustomerPage() {
                       : "border-border hover:border-accent"
                   }`}
                 >
-                  {s}
+                  <span>{s}</span>
                 </button>
               ))}
             </div>
 
-            <p className="text-sm font-medium mb-2">Toppings</p>
+            <p className="text-sm font-medium mb-2"><span>Toppings</span></p>
             <div className="space-y-2 mb-6">
               {addOns.map((ao) => (
                 <button
@@ -467,7 +491,7 @@ export default function CustomerPage() {
                   }`}
                 >
                   <span>{ao.itemname}</span>
-                  <span className="text-muted">+${Number(ao.price).toFixed(2)}</span>
+                  <span className="text-muted"><span>+${Number(ao.price).toFixed(2)}</span></span>
                 </button>
               ))}
             </div>
@@ -477,13 +501,13 @@ export default function CustomerPage() {
                 onClick={closeCustomizing}
                 className="flex-1 rounded-lg border border-border py-2 font-medium hover:bg-background transition"
               >
-                Cancel
+                <span>Cancel</span>
               </button>
               <button
                 onClick={confirmCustomization}
                 className="flex-1 rounded-lg bg-accent py-2 text-white font-medium hover:opacity-90 transition"
               >
-                {editingId !== null ? "Save Changes" : "Add to Order"}
+                <span>{editingId !== null ? "Save Changes" : "Add to Order"}</span>
               </button>
             </div>
           </div>
