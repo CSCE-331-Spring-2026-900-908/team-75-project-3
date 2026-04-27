@@ -692,7 +692,7 @@ function ChatbotWindow() {
             fill="none"
             style={{
               transition: "transform 0.25s ease",
-              transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
+              transform: isOpen ? "rotate(0deg)" : "rotate(180deg)",
             }}
           >
             <path d="M2 5l5 5 5-5" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
