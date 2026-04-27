@@ -1,21 +1,82 @@
-[Test Change Aadi Joshi]
+# Taro Root
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+A point-of-sale prototype for a fictional bubble tea shop. Live at <https://team-75-project-3.onrender.com/>.
 
-## Getting Started
+## What's here
 
-First, run the development server:
+Five interfaces, served from one Next.js app, reachable through a single one-way portal:
+
+- `/` portal, public entry with links out to the kiosk and employee login
+- `/order` customer self-service kiosk
+- `/login` Google sign-in for staff
+- `/cashier` cashier terminal for taking orders behind the counter
+- `/manager` manager dashboard for menu, inventory, and employee CRUD
+- `/manager/stats` sales charts, ingredient-usage history, X and Z reports
+
+The kiosk pulls current weather from Open-Meteo to recommend a drink, runs a Google Translate widget over the page, and exposes an OpenAI-backed chatbot for menu questions and ordering help.
+
+## Stack
+
+- Next.js 16.2 (App Router, Turbopack) with React 19 and TypeScript
+- Tailwind CSS 4
+- PostgreSQL on the TAMU CSCE 315 server, accessed through `pg`
+- NextAuth v5, Google OAuth, role lookup against the `employees` table
+- OpenAI SDK for the chatbot
+- Open-Meteo for weather, Google Translate widget for translation
+- Hosted on Render
+
+## Running locally
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then open <http://localhost:3000>.
 
-This project is currently hosted at [https://team-75-project-3.onrender.com/](https://team-75-project-3.onrender.com/).
+`npm run build` produces the production build, `npm start` serves it, `npm run lint` runs ESLint.
+
+## Environment
+
+Put these in `.env.local`:
+
+```dotenv
+DB_HOST=
+DB_PORT=
+DB_NAME=
+DB_USER=
+DB_PASS=
+
+AUTH_SECRET=
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+
+OPENAI_KEY=
+```
+
+Weather and translation don't need keys.
+
+## Layout
+
+```text
+app/
+  (portal)/page.tsx            landing
+  (customer)/order/page.tsx    kiosk, chatbot, weather, translate
+  (cashier)/cashier/page.tsx   cashier terminal
+  (manager)/manager/page.tsx   dashboard
+  (manager)/manager/stats      analytics, X and Z reports
+  login/page.tsx               Google sign-in
+  api/
+    auth/[...nextauth]         NextAuth handlers
+    menu, orders               core POS
+    inventory, employees       manager CRUD
+    manager/stats, reports     analytics
+    ai                         chatbot proxy
+    weather                    Open-Meteo proxy
+components/                    shared UI for cashier, manager, stats, translate
+lib/
+  db.ts                        Postgres pool
+  auth.ts                      NextAuth config
+  queries/                     SQL grouped by domain
+  types.ts                     shared types
+```
