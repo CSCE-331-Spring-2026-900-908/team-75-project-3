@@ -22,7 +22,7 @@ The kiosk pulls current weather from Open-Meteo to recommend a drink, runs a Goo
 - PostgreSQL on the TAMU CSCE 315 server, accessed through `pg`
 - NextAuth v5, Google OAuth, role lookup against the `employees` table
 - OpenAI SDK for the chatbot
-- Open-Meteo for weather, Google Translate widget for translation
+- OpenWeatherMap API for weather, Google Translate widget for translation
 - Hosted on Render
 
 ## Running locally
@@ -52,9 +52,10 @@ GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 
 OPENAI_KEY=
+OPENWEATHERMAP_API_KEY=
 ```
 
-Weather and translation don't need keys.
+Translation doesn't need a key.
 
 ## Layout
 
@@ -72,7 +73,7 @@ app/
     inventory, employees       manager CRUD
     manager/stats, reports     analytics
     ai                         chatbot proxy
-    weather                    Open-Meteo proxy
+    weather                    OpenWeatherMap proxy
 components/                    shared UI for cashier, manager, stats, translate
 lib/
   db.ts                        Postgres pool
