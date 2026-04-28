@@ -253,7 +253,7 @@ export default function CustomerPage() {
       {/* Header stays mounted at all times so GoogleTranslate is never torn down */}
       <div className="relative flex items-center justify-center py-4 border-b border-border bg-card">
         <h1 className="text-3xl font-display tracking-tight"><span translate="no">Taro Root</span></h1>
-        <div className="absolute right-4 top-1/2 -translate-y-1/2">
+        <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-3">
           <JavaScriptScreenReader announcements={announcements} />
           <GoogleTranslate />
         </div>
@@ -293,9 +293,9 @@ export default function CustomerPage() {
                 }}
                 aria-label={`View ${cat} category`}
                 aria-pressed={activeCategory === cat}
-                className={`px-3 py-3 rounded-lg text-base font-medium text-center whitespace-nowrap transition ${activeCategory === cat
-                  ? "bg-accent text-white"
-                  : "border border-border text-muted hover:border-accent"
+                className={`px-3 py-3 rounded-lg text-base font-medium text-center leading-tight transition ${activeCategory === cat
+                    ? "bg-accent text-white"
+                    : "border border-border text-muted hover:border-accent"
                   }`}
               >
                 {/* Static category names don't need spans since they never change,
