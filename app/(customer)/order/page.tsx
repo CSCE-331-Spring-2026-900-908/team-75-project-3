@@ -3,6 +3,10 @@
 import { useState, useEffect, useRef } from "react";
 import GoogleTranslate from "@/components/GoogleTranslate";
 
+import VirtualKeyboard from "@/components/VirtualKeyboard";
+import type { KeyboardTheme, KeyboardLayout } from "@/components/VirtualKeyboard";
+
+
 interface MenuItem {
   itemid: number;
   itemname: string;
@@ -592,6 +596,7 @@ function ChatbotWindow() {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [toast, setToast] = useState<ToastState>({ visible: false, message: "" });
+  const [keyboardOpen, setKeyboardOpen] = useState<boolean>(false);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -601,6 +606,11 @@ function ChatbotWindow() {
       bottomRef.current?.scrollIntoView({ behavior: "smooth" });
     }
   }, [conversation, isOpen]);
+
+  // Close the virtual keyboard whenever the chat panel collapses.
+  useEffect(() => {
+    if (!isOpen) setKeyboardOpen(false);
+  }, [isOpen]);
 
   function showToast(msg: string) {
     setToast({ visible: true, message: msg });
@@ -615,6 +625,10 @@ function ChatbotWindow() {
     const req: ChatMessage = { id: lastId, message: trimmed };
 
     setMessage("");
+    // Reset textarea height after clearing.
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+    }
     setIsLoading(true);
     setConversation((prev) => [...prev, req]);
 
@@ -643,12 +657,24 @@ function ChatbotWindow() {
     }
   }
 
-  function handleKeyDown(e: any) {
+  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       sendChatbotMessage(message);
     }
   }
+
+  // Keep React state in sync with changes the VirtualKeyboard makes directly
+  // to the textarea's DOM value, and resize the textarea to fit new content.
+  function handleTextareaInput(e: React.FormEvent<HTMLTextAreaElement>) {
+    const el = e.currentTarget;
+    setMessage(el.value);
+    el.style.height = "auto";
+    el.style.height = el.scrollHeight + "px";
+  }
+
+  const kbTheme: KeyboardTheme = "light";
+  const kbLayout: KeyboardLayout = "qwerty";
 
   return (
     <div
@@ -695,7 +721,13 @@ function ChatbotWindow() {
               transform: isOpen ? "rotate(0deg)" : "rotate(180deg)",
             }}
           >
-            <path d="M2 5l5 5 5-5" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            <path
+              d="M2 5l5 5 5-5"
+              stroke="#fff"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </svg>
         </button>
       </div>
@@ -744,10 +776,22 @@ function ChatbotWindow() {
                   borderBottomLeftRadius: "4px",
                 }}
               >
-                <span className="flex gap-1 items-center" style={{ color: "var(--muted)" }}>
-                  <span className="w-1.5 h-1.5 rounded-full animate-bounce [animation-delay:0ms]" style={{ background: "var(--accent)" }} />
-                  <span className="w-1.5 h-1.5 rounded-full animate-bounce [animation-delay:150ms]" style={{ background: "var(--accent)" }} />
-                  <span className="w-1.5 h-1.5 rounded-full animate-bounce [animation-delay:300ms]" style={{ background: "var(--accent)" }} />
+                <span
+                  className="flex gap-1 items-center"
+                  style={{ color: "var(--muted)" }}
+                >
+                  <span
+                    className="w-1.5 h-1.5 rounded-full animate-bounce [animation-delay:0ms]"
+                    style={{ background: "var(--accent)" }}
+                  />
+                  <span
+                    className="w-1.5 h-1.5 rounded-full animate-bounce [animation-delay:150ms]"
+                    style={{ background: "var(--accent)" }}
+                  />
+                  <span
+                    className="w-1.5 h-1.5 rounded-full animate-bounce [animation-delay:300ms]"
+                    style={{ background: "var(--accent)" }}
+                  />
                 </span>
               </div>
             )}
@@ -763,7 +807,11 @@ function ChatbotWindow() {
             <textarea
               ref={textareaRef}
               className="flex-1 resize-none appearance-none bg-transparent border-none focus:ring-0 focus:outline-none text-sm leading-relaxed"
-              style={{ color: "var(--foreground)", maxHeight: "7rem", minHeight: "1.5rem" }}
+              style={{
+                color: "var(--foreground)",
+                maxHeight: "7rem",
+                minHeight: "1.5rem",
+              }}
               placeholder="Ask anything…"
               rows={1}
               value={message}
@@ -772,28 +820,92 @@ function ChatbotWindow() {
                 e.target.style.height = "auto";
                 e.target.style.height = e.target.scrollHeight + "px";
               }}
+              // VirtualKeyboard dispatches native "input" events, so we also
+              // listen via onInput to stay in sync without duplicating onChange.
+              onInput={handleTextareaInput}
               onKeyDown={handleKeyDown}
+              onFocus={() => setKeyboardOpen(true)}
             />
+
+            {/* Virtual keyboard toggle */}
+            <button
+              onClick={() => {
+                setKeyboardOpen((o) => !o);
+                // Return focus to the textarea so the keyboard has a target.
+                textareaRef.current?.focus();
+              }}
+              className="mb-0.5 w-8 h-8 shrink-0 flex items-center justify-center rounded-full transition-all duration-150"
+              style={{
+                background: keyboardOpen ? "var(--accent)" : "var(--border)",
+                cursor: "pointer",
+              }}
+              aria-label={keyboardOpen ? "Hide virtual keyboard" : "Show virtual keyboard"}
+              aria-pressed={keyboardOpen}
+            >
+              {/* Keyboard icon */}
+              <svg width="15" height="11" viewBox="0 0 15 11" fill="none">
+                <rect x="0.5" y="0.5" width="14" height="10" rx="1.5" stroke="#fff" strokeWidth="1.2" />
+                <rect x="2" y="2.5" width="2" height="1.5" rx="0.4" fill="#fff" />
+                <rect x="5" y="2.5" width="2" height="1.5" rx="0.4" fill="#fff" />
+                <rect x="8" y="2.5" width="2" height="1.5" rx="0.4" fill="#fff" />
+                <rect x="11" y="2.5" width="2" height="1.5" rx="0.4" fill="#fff" />
+                <rect x="2" y="5" width="2" height="1.5" rx="0.4" fill="#fff" />
+                <rect x="5" y="5" width="2" height="1.5" rx="0.4" fill="#fff" />
+                <rect x="8" y="5" width="2" height="1.5" rx="0.4" fill="#fff" />
+                <rect x="11" y="5" width="2" height="1.5" rx="0.4" fill="#fff" />
+                <rect x="3.5" y="7.5" width="8" height="1.5" rx="0.4" fill="#fff" />
+              </svg>
+            </button>
+
+            {/* Send button */}
             <button
               onClick={() => sendChatbotMessage(message)}
               disabled={!message.trim() || isLoading}
               className="mb-0.5 w-8 h-8 shrink-0 flex items-center justify-center rounded-full transition-all duration-150"
               style={{
                 background:
-                  message.trim() && !isLoading
-                    ? "var(--accent)"
-                    : "var(--border)",
+                  message.trim() && !isLoading ? "var(--accent)" : "var(--border)",
                 cursor: message.trim() && !isLoading ? "pointer" : "not-allowed",
               }}
               aria-label="Send message"
             >
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <path d="M7 12V2M2 7l5-5 5 5" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                <path
+                  d="M7 12V2M2 7l5-5 5 5"
+                  stroke="#fff"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
               </svg>
             </button>
           </div>
         </div>
       </div>
+
+      {/* Virtual keyboard — rendered in a portal via fixed positioning */}
+      {keyboardOpen && (<VirtualKeyboard
+        targetRef={textareaRef}
+        isOpen={keyboardOpen}
+        onClose={() => setKeyboardOpen(false)}
+        layout={kbLayout}
+        theme={kbTheme}
+        placement="right"
+        size="normal"
+        draggable
+        showClose
+        onKeyPress={(key) => {
+          // Send on Enter (VirtualKeyboard handles insertion; we just need
+          // to trigger send for the non-textarea Enter behaviour).
+          if (key === "Enter") {
+            // Give the DOM event a tick to flush before reading message state.
+            setTimeout(() => {
+              const current = textareaRef.current?.value ?? "";
+              if (current.trim()) sendChatbotMessage(current);
+            }, 0);
+          }
+        }}
+      />)}
     </div>
   );
 }
