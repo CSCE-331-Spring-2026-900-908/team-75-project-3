@@ -302,15 +302,13 @@ export async function zGeneratedTime(): Promise<string | null> {
 // Generates an X report: a non-destructive sales snapshot from the last Z report (or start of day) until now.
 // Does not modify any database state.
 export async function generateXReport(): Promise<ReportDetails> {
-    // Compute start-of-day in America/Chicago, not server local time
     const now = new Date();
-    const from = new Date(
-        now.toLocaleString("en-US", { timeZone: "America/Chicago" })
-    );
-    from.setHours(0, 0, 0, 0);
-
-    const fromIso = from.toISOString();
     const toIso = now.toISOString();
+
+    const { rows: dayStart } = await pool.query(
+        `SELECT (CURRENT_DATE::timestamp AT TIME ZONE 'America/Chicago') AS start_of_day`
+    );
+    const fromIso = new Date(dayStart[0].start_of_day).toISOString();
 
     const zToday = await hasZReportToday();
     if (zToday) {
@@ -348,6 +346,11 @@ export async function generateZReport(): Promise<ReportDetails> {
     try {
         await client.query("BEGIN");
 
+        const { rows: dayStart } = await client.query(
+            `SELECT (CURRENT_DATE::timestamp AT TIME ZONE 'America/Chicago') AS start_of_day`
+        );
+        const fromIso = new Date(dayStart[0].start_of_day).toISOString();
+
         // If a Z report already exists for today, return its data instead of throwing
         const { rows: existing } = await client.query(
             `SELECT id, generated_at, total_orders, total_revenue 
@@ -359,14 +362,12 @@ export async function generateZReport(): Promise<ReportDetails> {
         if (existing.length > 0) {
             await client.query("COMMIT");
             const generatedAt = new Date(existing[0].generated_at).toISOString();
-            const from = new Date(generatedAt);
-            from.setHours(0, 0, 0, 0);
-            const hourly = await getHourlyMetrics(from.toISOString(), generatedAt);
+            const hourly = await getHourlyMetrics(fromIso, generatedAt);
 
             return {
                 type: "z",
                 generatedAt,
-                from: from.toISOString(),
+                from: fromIso,
                 to: generatedAt,
                 totalOrders: Number(existing[0].total_orders),
                 totalRevenue: Number(existing[0].total_revenue),
@@ -396,14 +397,12 @@ export async function generateZReport(): Promise<ReportDetails> {
         await client.query("COMMIT");
 
         const generatedAt = new Date(inserted[0].generated_at).toISOString();
-        const from = new Date(generatedAt);
-        from.setHours(0, 0, 0, 0);
-        const hourly = await getHourlyMetrics(from.toISOString(), generatedAt);
+        const hourly = await getHourlyMetrics(fromIso, generatedAt);
 
         return {
             type: "z",
             generatedAt,
-            from: from.toISOString(),
+            from: fromIso,
             to: generatedAt,
             totalOrders,
             totalRevenue,
