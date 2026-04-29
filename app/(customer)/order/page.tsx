@@ -825,7 +825,7 @@ function ChatbotWindow({ announce }: { announce?: (message: string) => void }) {
             }
           }}
           className="w-7 h-7 flex items-center justify-center rounded-lg transition-colors duration-150"
-          style={{ background: "rgba(255,255,255,0.15)" }}
+          style={{ background: "rgba(107,78,139,1)" }}
           aria-label={isOpen ? "Collapse chat" : "Expand chat"}
         >
           <svg
